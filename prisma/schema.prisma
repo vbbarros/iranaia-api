@@ -1,0 +1,213 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Fazenda {
+  id                  String                @id @default(uuid())
+  nome                String
+  localizacao         String
+  animais             Animal[]
+  estoque             Estoque[]
+  historicoPrecoLeite HistoricoPrecoLeite[]
+  vendaLeite          VendaLeite[]
+}
+
+model StatusAnimal {
+  id        String   @id @default(uuid())
+  descricao String
+  animais   Animal[]
+}
+
+enum Sexo {
+  M
+  F
+}
+
+model Animal {
+  id                 String               @id @default(uuid())
+  numeroBrinco       String
+  sexo               Sexo
+  dataNascimento     DateTime
+  foto               String?
+  raca               String
+  descricao          String
+  preco              Decimal              @db.Decimal(10, 2)
+  maeId              String?
+  Fazenda            Fazenda              @relation(fields: [fazendaId], references: [id])
+  fazendaId          String
+  StatusAnimal       StatusAnimal         @relation(fields: [statusAnimalId], references: [id])
+  statusAnimalId     String
+  mae                Animal?              @relation("parent", fields: [maeId], references: [id])
+  filhas             Animal[]             @relation("parent")
+  historicoFemea     HistoricoFemea[]
+  producaoLeite      ProducaoLeite[]
+  estadoAnimal       EstadoAnimal[]
+  vendaAnimal        VendaAnimal[]
+  filhos             Bezerro[]
+  protocoloSanitario ProtocoloSanitario[]
+
+  CompraAnimal CompraAnimal?
+}
+
+model TipoHistoricoFemea {
+  id             String           @id @default(uuid())
+  descricao      String
+  historicoFemea HistoricoFemea[]
+}
+
+model HistoricoFemea {
+  id        String   @id @default(uuid())
+  data      DateTime
+  descricao String
+
+  Animal               Animal             @relation(fields: [animalId], references: [id])
+  animalId             String
+  tipoHistoricoFemea   TipoHistoricoFemea @relation(fields: [tipoHistoricoFemeaId], references: [id])
+  tipoHistoricoFemeaId String
+}
+
+model ProducaoLeite {
+  id         String   @id @default(uuid())
+  data       DateTime
+  quantidade Decimal  @db.Decimal(10, 2)
+  animal     Animal   @relation(fields: [animalId], references: [id])
+  animalId   String
+}
+
+model TipoEstoque {
+  id           String        @id @default(uuid())
+  descricao    String
+  itensEstoque ItemEstoque[]
+}
+
+model ItemEstoque {
+  id            String      @id @default(uuid())
+  nome          String
+  descricao     String
+  tipoEstoque   TipoEstoque @relation(fields: [tipoEstoqueId], references: [id])
+  tipoEstoqueId String
+  estoques      Estoque[]
+}
+
+model Estoque {
+  id            String         @id @default(uuid())
+  quantidade    Int
+  preco         Decimal        @db.Decimal(10, 2)
+  ItemEstoque   ItemEstoque    @relation(fields: [itemEstoqueId], references: [id])
+  itemEstoqueId String
+  fazenda       Fazenda        @relation(fields: [fazendaId], references: [id])
+  fazendaId     String
+  saidasEstoque SaidaEstoque[]
+}
+
+model SaidaEstoque {
+  id          String   @id @default(uuid())
+  quantidade  Int
+  dataSaida   DateTime
+  motivo      String
+  responsavel String
+  estoque     Estoque  @relation(fields: [estoqueId], references: [id])
+  estoqueId   String
+}
+
+model HistoricoPrecoLeite {
+  id        String   @id @default(uuid())
+  data      DateTime
+  preco     Decimal  @db.Decimal(10, 2)
+  fazenda   Fazenda  @relation(fields: [fazendaId], references: [id])
+  fazendaId String
+}
+
+model VendaAnimal {
+  id        String   @id @default(uuid())
+  dataVenda DateTime
+  preco     Decimal  @db.Decimal(10, 2)
+  animal    Animal   @relation(fields: [animalId], references: [id])
+  animalId  String
+}
+
+enum EstadoAnimalEnum {
+  PARIDA_LACTACAO
+  PARIDA_LACTACAO_PRENHA
+  PRENHA_SECA
+  SECA_NAO_PRENHA
+}
+
+model EstadoAnimal {
+  id         String           @id @default(uuid())
+  estado     EstadoAnimalEnum
+  dataInicio DateTime
+  dataFim    DateTime
+  animal     Animal           @relation(fields: [animalId], references: [id])
+  animalId   String
+}
+
+model StatusBezerro {
+  id        String    @id @default(uuid())
+  descricao String
+  bezerro   Bezerro[]
+}
+
+model Bezerro {
+  id             String   @id @default(uuid())
+  dataNascimento DateTime
+  sexo           Sexo
+  dataVenda      DateTime
+  preco          Decimal  @db.Decimal(10, 2)
+
+  statusBezerro   StatusBezerro @relation(fields: [statusBezerroId], references: [id])
+  statusBezerroId String
+  Animal          Animal        @relation(fields: [maeId], references: [id])
+  maeId           String
+}
+
+enum ProtocoloSanitarioEnum {
+  VACINA
+  VERMIFUGO
+  CARRAPATICIDA
+  BRINCO_MOSCA
+}
+
+model ProtocoloSanitario {
+  id        String                 @id @default(uuid())
+  tipo      ProtocoloSanitarioEnum
+  data      DateTime
+  descricao String
+
+  Animal   Animal @relation(fields: [animalId], references: [id])
+  animalId String
+}
+
+model VendaLeite {
+  id               String   @id @default(uuid())
+  data             DateTime
+  quantidadeLitros Decimal  @db.Decimal(10, 2)
+  fotoComprovante  String
+  descricao        String
+  preco            Decimal  @db.Decimal(10, 2)
+
+  Fazenda   Fazenda? @relation(fields: [fazendaId], references: [id])
+  fazendaId String?
+}
+
+model CompraAnimal {
+  id            String   @id @default(uuid())
+  dataPagamento DateTime
+  preco         Decimal  @db.Decimal(10, 2)
+  nomeVendedor  String
+  descricao     String
+
+  compraAnimal Animal @relation(fields: [animalId], references: [id])
+  animalId     String @unique
+}
